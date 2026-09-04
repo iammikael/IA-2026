@@ -41,6 +41,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
 from maze import Coord, Maze
+from collections import deque
 
 
 @dataclass
@@ -92,8 +93,6 @@ def bfs(maze: Maze) -> SearchResult:
     O BFS garante encontrar o caminho mais curto em número de passos
     (todas as arestas têm o mesmo "custo").
     """
-    inicio_tempo = time.perf_counter()
-
     # TODO: implemente aqui a busca em largura.
     # 1. Pense na fronteira como uma fila: a primeira célula a entrar deve ser a primeira a sair (FIFO). O collections.deque é ideal pra isso,
     # com .append() para inserir e .popleft() para retirar.
@@ -104,8 +103,52 @@ def bfs(maze: Maze) -> SearchResult:
     # 5. Se não for o objetivo, olhe os vizinhos livres dessa célula (maze.vizinhos(...)). Para cada vizinho ainda não conhecido: marque-o como conhecido, guarde
     # de qual célula você veio até ele (isso é o que permite reconstruir o caminho depois) e coloque-o no fim da fila.
     # 6. Se a fila esvaziar completamente sem nunca ter alcançado o objetivo, é sinal de que não existe caminho, devolva um resultado indicando isso.
-    raise NotImplementedError("Implemente o algoritmo BFS em algorithms.py")
+    #raise NotImplementedError("Implemente o algoritmo BFS em algorithms.py")
 
+    inicio_tempo = time.perf_counter()
+
+    fila       =deque([maze.inicio])
+    visto      ={maze.inicio}
+    veio_de    ={}
+    explorados =[]
+
+    while fila:
+        atual = fila.popleft()
+        explorados.append(atual)
+
+        if atual == maze.objetivo:
+
+            tempo_final = time.perf_counter() - inicio_tempo
+
+            caminho = reconstruir_caminho(
+                veio_de,
+                maze.inicio,
+                maze.objetivo
+            )
+
+            return SearchResult(
+                encontrado=True,                 
+                caminho=caminho,             
+                explorados=explorados,          
+                expandidos=len(explorados),      
+                tempo=tempo_final
+            )
+        
+        for vizinho in maze.vizinhos(atual):
+            if vizinho not in visto:
+                visto.add(vizinho)
+                veio_de[vizinho]=atual 
+                fila.append(vizinho)
+
+    tempo_final = time.perf_counter() - inicio_tempo            
+
+    return SearchResult(
+        encontrado=False,                 
+        caminho=[],             
+        explorado=explorados,          
+        expandidos=len(explorados),      
+        tempo=tempo_final 
+    )
 
 # ---------------------------------------------------------------------------
 # 2) BUSCA EM PROFUNDIDADE (DFS)
