@@ -37,6 +37,7 @@ Dica geral de implementação (para qualquer um dos 3 algoritmos):
 from __future__ import annotations
 
 import time
+import heapq
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
@@ -84,27 +85,7 @@ def heuristica(a: Coord, b: Coord) -> int:
 # 1) BUSCA EM LARGURA (BFS)
 # ---------------------------------------------------------------------------
 def bfs(maze: Maze) -> SearchResult:
-    """
-    TODO: Implementar a Busca em Largura (BFS).
-
-    Estrutura de dados sugerida: fila (collections.deque), processando
-    sempre a célula mais antiga inserida (FIFO).
-
-    O BFS garante encontrar o caminho mais curto em número de passos
-    (todas as arestas têm o mesmo "custo").
-    """
-    # TODO: implemente aqui a busca em largura.
-    # 1. Pense na fronteira como uma fila: a primeira célula a entrar deve ser a primeira a sair (FIFO). O collections.deque é ideal pra isso,
-    # com .append() para inserir e .popleft() para retirar.
-    # 2. Comece a fila só com maze.inicio, e mantenha um conjunto de células "já conhecidas" para nunca inserir a mesma célula duas vezes na fila.
-    # 3. Em cada volta do laço, retire a célula mais antiga da fila — essa é a célula que você está processando agora. Registre-a na lista de
-    # exploradas (é o que pinta o tabuleiro de azul).
-    # 4. Verifique se essa célula é o objetivo. Se for, é hora de reconstruir o caminho usando a função reconstruir_caminho (ela já está pronta) e devolver o resultado.
-    # 5. Se não for o objetivo, olhe os vizinhos livres dessa célula (maze.vizinhos(...)). Para cada vizinho ainda não conhecido: marque-o como conhecido, guarde
-    # de qual célula você veio até ele (isso é o que permite reconstruir o caminho depois) e coloque-o no fim da fila.
-    # 6. Se a fila esvaziar completamente sem nunca ter alcançado o objetivo, é sinal de que não existe caminho, devolva um resultado indicando isso.
-    #raise NotImplementedError("Implemente o algoritmo BFS em algorithms.py")
-
+   
     inicio_tempo = time.perf_counter()
 
     fila       =deque([maze.inicio])
@@ -166,11 +147,48 @@ def dfs(maze: Maze) -> SearchResult:
     """
     inicio_tempo = time.perf_counter()
 
-    # TODO: implemente aqui a busca em profundidade.
+    pilha      =[maze.inicio]
+    visto      ={maze.inicio}
+    veio_de    ={}
+    explorados =[]
 
-    raise NotImplementedError("Implemente o algoritmo DFS em algorithms.py")
+    while pilha:
+        atual = pilha.pop()
+        explorados.append(atual)
 
+        if atual == maze.objetivo:
+ 
+            tempo_final = time.perf_counter() - inicio_tempo
 
+            caminho = reconstruir_caminho(
+                veio_de,
+                maze.inicio,
+                maze.objetivo
+            )
+
+            return SearchResult(
+                encontrado=True,                 
+                caminho=caminho,             
+                explorados=explorados,          
+                expandidos=len(explorados),      
+                tempo=tempo_final 
+            )
+
+        for vizinho in maze.vizinhos(atual):
+            if vizinho not in visto:
+                visto.add(vizinho)
+                veio_de[vizinho] = atual
+                pilha.append(vizinho)
+
+    tempo_final = time.perf_counter() - inicio_tempo
+
+    return SearchResult(
+            encontrado=False,                 
+            caminho=caminho,             
+            explorados=explorados,          
+            expandidos=len(explorados),      
+            tempo=tempo_final 
+        )
 # ---------------------------------------------------------------------------
 # 3) BUSCA A* (A-ESTRELA)
 # ---------------------------------------------------------------------------
@@ -190,11 +208,54 @@ def astar(maze: Maze) -> SearchResult:
     """
     inicio_tempo = time.perf_counter()
 
-    # TODO: implemente aqui a busca A*.
 
-    raise NotImplementedError("Implemente o algoritmo A* em algorithms.py")
+    heap       =[(0+heuristica(maze.inicio, maze.objetivo), 0, maze.inicio,[maze.inicio])]
+    explorados =[]
+    custo_g    ={maze.inicio: 0}
+    veio_de    ={}
 
+    while heap:
+        f, g, atual, caminho = heapq.heappop(heap)
+        explorados.append(atual)
 
+        if atual == maze.objetivo:
+
+            tempo_final = time.perf_counter() - inicio_tempo
+
+            caminho = reconstruir_caminho(
+                veio_de,
+                maze.inicio,
+                maze.objetivo
+            )
+
+            return SearchResult(
+                encontrado=True,                 
+                caminho=caminho,             
+                explorados=explorados,          
+                expandidos=len(explorados),      
+                tempo=tempo_final 
+            )
+
+        for vizinho in maze.vizinhos(atual):
+
+            novo_g = g + 1
+
+            if vizinho not in custo_g or novo_g < custo_g[vizinho]:
+                custo_g[vizinho] = novo_g
+                veio_de[vizinho]= atual
+                h = heuristica(vizinho, maze.objetivo)
+                f = novo_g + h 
+                heapq.heappush(heap,(f, novo_g, vizinho, caminho + [vizinho]))
+
+    tempo_final = time.perf_counter() - inicio_tempo
+     
+    return SearchResult(
+            encontrado=True,                 
+            caminho=caminho,             
+            explorados=explorados,          
+            expandidos=len(explorados),      
+            tempo=tempo_final 
+            )
 # Mapa usado pela interface para associar o texto do dropdown à função
 ALGORITMOS = {
     "BFS": bfs,
